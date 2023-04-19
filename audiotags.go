@@ -29,11 +29,10 @@ package audiotags
 */
 import "C"
 import (
+	"fmt"
 	"strings"
 	"unsafe"
 )
-
-import "fmt"
 
 type File C.TagLib_File
 
@@ -51,7 +50,7 @@ func Open(filename string) (*File, error) {
 	return (*File)(f), nil
 }
 
-func Read(filename string) (map[string]string, *AudioProperties, error) {
+func Read(filename string) (map[string][]string, *AudioProperties, error) {
 	f, err := Open(filename)
 	if err != nil {
 		return nil, nil, err
@@ -60,7 +59,7 @@ func Read(filename string) (map[string]string, *AudioProperties, error) {
 	return f.ReadTags(), f.ReadAudioProperties(), nil
 }
 
-func ReadTags(filename string) (map[string]string, error) {
+func ReadTags(filename string) (map[string][]string, error) {
 	f, err := Open(filename)
 	if err != nil {
 		return nil, err
@@ -82,10 +81,10 @@ func (f *File) Close() {
 	C.audiotags_file_close((*C.TagLib_File)(f))
 }
 
-func (f *File) ReadTags() map[string]string {
+func (f *File) ReadTags() map[string][]string {
 	id := mapsNextId
 	mapsNextId++
-	m := make(map[string]string)
+	m := make(map[string][]string)
 	maps[id] = m
 	C.audiotags_file_properties((*C.TagLib_File)(f), C.int(id))
 	delete(maps, id)
@@ -105,7 +104,7 @@ func (f *File) ReadAudioProperties() *AudioProperties {
 	return &p
 }
 
-var maps = make(map[int]map[string]string)
+var maps = make(map[int]map[string][]string)
 var mapsNextId = 0
 
 //export go_map_put
@@ -113,5 +112,5 @@ func go_map_put(id C.int, key *C.char, val *C.char) {
 	m := maps[int(id)]
 	k := strings.ToLower(C.GoString(key))
 	v := C.GoString(val)
-	m[k] = v
+	m[k] = append(m[k], v)
 }
